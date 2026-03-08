@@ -1,0 +1,27 @@
+display_information:
+  name: DataBot
+  description: Ask data questions in Slack using natural language
+  background_color: "#2c2d30"
+
+features:
+  bot_user:
+    display_name: DataBot
+    always_online: false
+
+  slash_commands:
+    - command: /ask-data
+      description: Query sales data with natural language
+      usage_hint: "show revenue by region for 2025-09-01"
+      should_escape: false
+      url: https://fascial-nomographically-omari.ngrok-free.dev/slack/events
+
+oauth_config:
+  scopes:
+    bot:
+      - commands
+      - chat:write
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  is_hosted: false
