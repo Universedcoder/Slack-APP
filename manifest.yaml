@@ -20,8 +20,13 @@ oauth_config:
     bot:
       - commands
       - chat:write
+      - channels:join
+      - files:write
 
 settings:
+  interactivity:
+    is_enabled: true
+    request_url: https://fascial-nomographically-omari.ngrok-free.dev/slack/actions
   org_deploy_enabled: false
   socket_mode_enabled: false
   is_hosted: false

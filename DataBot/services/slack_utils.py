@@ -1,6 +1,7 @@
 from typing import Any
 
 from DataBot.core.config import settings
+from DataBot.services.chart_utils import build_chart_image_url, is_chartable_result
 from DataBot.services.db import QueryResult
 
 
@@ -79,7 +80,11 @@ def build_generic_failure_response() -> dict[str, Any]:
     )
 
 
-def build_success_response(question: str, result: QueryResult) -> dict[str, Any]:
+def build_success_response(
+    question: str,
+    result: QueryResult,
+    base_url: str | None = None,
+) -> dict[str, Any]:
     if not result.rows:
         return _base_response(
             f"No results found for: {question}",
@@ -90,30 +95,60 @@ def build_success_response(question: str, result: QueryResult) -> dict[str, Any]
     table_block = _truncate(_format_table(result.columns, result.rows), 2500)
     summary = f"Found {len(result.rows)} row(s) for: {question}"
 
-    return _base_response(
-        summary,
-        response_type="in_channel",
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Question*\n>{question}",
-                },
+    blocks: list[dict[str, Any]] = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Question*\n>{question}",
             },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*SQL*\n```{sql_block}```",
-                },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*SQL*\n```{sql_block}```",
             },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Results*\n```{table_block}```",
-                },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Results*\n```{table_block}```",
             },
-        ],
+        },
+    ]
+
+    if base_url and is_chartable_result(result):
+        blocks.append(
+            {
+                "type": "image",
+                "title": {
+                    "type": "plain_text",
+                    "text": "Trend",
+                    "emoji": True,
+                },
+                "image_url": build_chart_image_url(base_url, result.sql),
+                "alt_text": f"Trend chart for {question}",
+            }
+        )
+
+    blocks.append(
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Export CSV",
+                        "emoji": True,
+                    },
+                    "action_id": "export_csv",
+                    "value": result.sql[:2000],
+                }
+            ],
+        }
     )
+
+    return _base_response(summary, response_type="in_channel", blocks=blocks)

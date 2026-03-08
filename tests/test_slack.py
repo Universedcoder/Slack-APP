@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from DataBot.core.config import settings
 from DataBot.main import app
+from DataBot.services.chart_utils import build_chart_signature
 from DataBot.services.db import QueryResult
 from DataBot.services.nl_to_sql import NLToSQLGenerationError
 
@@ -87,3 +88,35 @@ def test_llm_failure_returns_warning(monkeypatch) -> None:
     assert response.status_code == 200
     assert payload["response_type"] == "ephemeral"
     assert "rephrasing" in payload["text"].lower()
+
+
+def test_chart_endpoint_rejects_invalid_signature() -> None:
+    response = client.get(
+        "/charts/query.png",
+        params={"sql": "SELECT date, revenue FROM public.sales_daily", "sig": "bad"},
+    )
+    assert response.status_code == 403
+
+
+def test_chart_endpoint_returns_png(monkeypatch) -> None:
+    sql = "SELECT date, revenue FROM public.sales_daily ORDER BY date LIMIT 20"
+    monkeypatch.setattr(
+        "DataBot.routers.slack.execute_read_only_query",
+        lambda _: QueryResult(
+            sql=sql,
+            columns=["date", "revenue"],
+            rows=[
+                {"date": "2025-09-01", "revenue": 100.0},
+                {"date": "2025-09-02", "revenue": 120.0},
+            ],
+        ),
+    )
+
+    response = client.get(
+        "/charts/query.png",
+        params={"sql": sql, "sig": build_chart_signature(sql)},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content.startswith(b"\x89PNG\r\n\x1a\n")

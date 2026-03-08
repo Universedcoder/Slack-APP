@@ -7,4 +7,5 @@ httpx
 langchain
 langchain-groq
 psycopg[binary]
+matplotlib
 pytest

@@ -18,4 +18,4 @@ def test_success_response_contains_blocks() -> None:
         ),
     )
     assert payload["response_type"] == "in_channel"
-    assert len(payload["blocks"]) == 3
+    assert len(payload["blocks"]) == 4  # question, sql, results, export button
